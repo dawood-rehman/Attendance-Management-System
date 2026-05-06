@@ -119,13 +119,6 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-
-      {/* Demo hint */}
-      <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-        <p className="text-xs text-amber-400/80 text-center">
-          <span className="font-semibold">Admin:</span> admin@school.com / Admin@123456
-        </p>
-      </div>
     </div>
   );
 }
