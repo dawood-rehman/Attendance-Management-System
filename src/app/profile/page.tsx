@@ -1,19 +1,20 @@
 'use client';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button, Input, Card } from '@/components/ui';
-import { User, Lock, Save, Shield } from 'lucide-react';
+import { User, Lock, Save, Shield, Menu } from 'lucide-react';
 import { apiCall } from '@/utils/api';
 import { AuthProvider } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import Sidebar from '@/components/layout/Sidebar';
 
 function ProfileContent() {
-  const { user, refreshUser } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const forcePassword = searchParams.get('forcePassword') === '1' || Boolean(user?.mustChangePassword);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [currentPw, setCurrentPw] = useState('');
@@ -21,6 +22,19 @@ function ProfileContent() {
   const [confirmPw, setConfirmPw] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [loading, user, router]);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+      setEmail(user.email);
+    }
+  }, [user]);
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,74 +70,106 @@ function ProfileContent() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <p className="text-sm text-white/40">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 ml-64 p-8">
-        <div className="max-w-xl space-y-6 animate-fade-up">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-white">Profile</h1>
-            <p className="text-white/40 text-sm mt-0.5">Manage your account details and password</p>
-          </div>
-
-          {forcePassword && (
-            <Card className="border-amber-500/20 bg-amber-500/10">
-              <div className="font-display font-semibold text-amber-200">Password change required</div>
-              <p className="mt-1 text-sm text-amber-100/70">
-                Update your default password before using the rest of the system.
-              </p>
-            </Card>
-          )}
-
-          <Card className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl font-display">
-              {user?.name?.charAt(0).toUpperCase()}
-            </div>
+    <div className="min-h-screen overflow-x-hidden">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-white/10 bg-surface-950/90 px-4 backdrop-blur lg:hidden">
+        <button
+          type="button"
+          aria-label="Open menu"
+          onClick={() => setSidebarOpen(true)}
+          className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+        >
+          <Menu size={20} />
+        </button>
+        <div className="min-w-0">
+          <div className="font-display text-sm font-bold text-white">AttendanceIQ</div>
+          <div className="truncate text-xs capitalize text-white/35">Profile</div>
+        </div>
+      </div>
+      <main className="min-h-screen overflow-x-hidden lg:ml-64">
+        <div
+          className="min-h-screen bg-grid-pattern"
+          style={{ backgroundSize: '40px 40px' }}
+        >
+          <div className="w-full max-w-xl space-y-6 p-4 sm:p-6 lg:p-8 animate-fade-up">
             <div>
-              <div className="font-display font-semibold text-white">{user?.name}</div>
-              <div className="text-sm text-white/40">{user?.email}</div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className={`text-xs px-2 py-0.5 rounded-full border capitalize font-medium ${
-                  user?.role === 'admin' ? 'bg-purple-500/15 text-purple-300 border-purple-500/25' :
-                  user?.role === 'teacher' ? 'bg-brand-500/15 text-brand-300 border-brand-500/25' :
-                  'bg-cyan-500/15 text-cyan-300 border-cyan-500/25'
-                }`}>{user?.role}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25 capitalize">{user?.status}</span>
+              <h1 className="font-display text-2xl font-bold text-white">Profile</h1>
+              <p className="text-white/40 text-sm mt-0.5">Manage your account details and password</p>
+            </div>
+
+            {forcePassword && (
+              <Card className="border-amber-500/20 bg-amber-500/10">
+                <div className="font-display font-semibold text-amber-200">Password change required</div>
+                <p className="mt-1 text-sm text-amber-100/70">
+                  Update your default password before using the rest of the system.
+                </p>
+              </Card>
+            )}
+
+            <Card className="flex items-start gap-3 sm:items-center sm:gap-4">
+              <div className="w-14 h-14 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl font-display">
+                {user.name.charAt(0).toUpperCase()}
               </div>
-            </div>
-            <div className="ml-auto">
-              <Shield size={20} className="text-white/20" />
-            </div>
-          </Card>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-display font-semibold text-white">{user.name}</div>
+                <div className="truncate text-sm text-white/40">{user.email}</div>
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  <span className={`text-xs px-2 py-0.5 rounded-full border capitalize font-medium ${
+                    user.role === 'admin' ? 'bg-purple-500/15 text-purple-300 border-purple-500/25' :
+                    user.role === 'teacher' ? 'bg-brand-500/15 text-brand-300 border-brand-500/25' :
+                    'bg-cyan-500/15 text-cyan-300 border-cyan-500/25'
+                  }`}>{user.role}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25 capitalize">{user.status}</span>
+                </div>
+              </div>
+              <div className="ml-auto hidden sm:block">
+                <Shield size={20} className="text-white/20" />
+              </div>
+            </Card>
 
-          <Card>
-            <div className="flex items-center gap-2 mb-5">
-              <User size={18} className="text-brand-400" />
-              <h2 className="font-display font-semibold text-white">Personal Information</h2>
-            </div>
-            <form onSubmit={saveProfile} className="space-y-4">
-              <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} required />
-              <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Button type="submit" loading={savingProfile}>
-                <Save size={14} /> Save Profile
-              </Button>
-            </form>
-          </Card>
+            <Card>
+              <div className="flex items-center gap-2 mb-5">
+                <User size={18} className="text-brand-400" />
+                <h2 className="font-display font-semibold text-white">Personal Information</h2>
+              </div>
+              <form onSubmit={saveProfile} className="space-y-4">
+                <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} required />
+                <Input label="Email Address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Button type="submit" loading={savingProfile}>
+                  <Save size={14} /> Save Profile
+                </Button>
+              </form>
+            </Card>
 
-          <Card>
-            <div className="flex items-center gap-2 mb-5">
-              <Lock size={18} className="text-brand-400" />
-              <h2 className="font-display font-semibold text-white">Change Password</h2>
-            </div>
-            <form onSubmit={changePassword} className="space-y-4">
-              <Input label="Current Password" type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required />
-              <Input label="New Password" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} hint="At least 6 characters" required />
-              <Input label="Confirm Password" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} required />
-              <Button type="submit" loading={savingPw}>
-                <Lock size={14} /> Update Password
-              </Button>
-            </form>
-          </Card>
+            <Card>
+              <div className="flex items-center gap-2 mb-5">
+                <Lock size={18} className="text-brand-400" />
+                <h2 className="font-display font-semibold text-white">Change Password</h2>
+              </div>
+              <form onSubmit={changePassword} className="space-y-4">
+                <Input label="Current Password" type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required />
+                <Input label="New Password" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} hint="At least 6 characters" required />
+                <Input label="Confirm Password" type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} required />
+                <Button type="submit" loading={savingPw}>
+                  <Lock size={14} /> Update Password
+                </Button>
+              </form>
+            </Card>
+          </div>
         </div>
       </main>
     </div>
